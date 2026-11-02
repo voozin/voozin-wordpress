@@ -1,0 +1,26 @@
+# Lints PHP on the oldest and newest supported versions and builds the zip. Releases to
+# wordpress.org run from the GitHub mirror (.github/workflows/release.yml).
+stages: [test, build]
+
+.lint:
+  stage: test
+  script:
+    - find . -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+lint-php74:
+  extends: .lint
+  image: php:7.4-cli
+
+lint-php83:
+  extends: .lint
+  image: php:8.3-cli
+
+zip:
+  stage: build
+  image: alpine:3.20
+  script:
+    - apk add --no-cache rsync zip
+    - sh bin/build-zip.sh
+  artifacts:
+    paths: [build/voozin-wordpress.zip]
+    expire_in: 30 days

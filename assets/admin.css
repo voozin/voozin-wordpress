@@ -1,0 +1,24 @@
+.voozin .voozin-local { width: 12em; }
+.voozin .voozin-error, .voozin .voozin-danger { color: #b32d2e; }
+.voozin .voozin-warning { background: #fcf9e8; border-left: 4px solid #dba617; padding: 6px 10px; margin: 8px 0; }
+.voozin .voozin-card { background: #fff; border: 1px solid #c3c4c7; padding: 4px 16px 8px; margin: 16px 0; max-width: 820px; }
+.voozin .voozin-inline { display: inline; }
+.voozin .voozin-routes li { display: flex; gap: 12px; align-items: center; }
+.voozin .voozin-threads td { padding: 10px 12px; }
+.voozin .voozin-threads .voozin-who { width: 24%; }
+.voozin .voozin-threads .voozin-when { width: 12%; text-align: right; color: #646970; }
+.voozin .voozin-threads .voozin-unread td { font-weight: 600; }
+.voozin .voozin-count { color: #646970; font-weight: 400; }
+.voozin .voozin-message { background: #fff; border: 1px solid #c3c4c7; margin: 12px 0; padding: 12px 16px; max-width: 900px; }
+.voozin .voozin-message.voozin-out { border-left: 4px solid #2271b1; }
+.voozin .voozin-meta { display: flex; justify-content: space-between; margin-bottom: 8px; color: #646970; }
+.voozin .voozin-meta strong { color: #1d2327; }
+.voozin .voozin-body-html { width: 100%; height: 260px; border: 0; resize: vertical; background: #fff; }
+.voozin .voozin-body-text { white-space: normal; line-height: 1.6; }
+.voozin .voozin-attachments { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #f0f0f1; }
+.voozin .voozin-attachments span { color: #646970; }
+.voozin .voozin-reply { max-width: 900px; }
+.voozin .voozin-status { display: inline-block; padding: 1px 8px; border-radius: 10px; background: #f0f0f1; }
+.voozin .voozin-status-delivered { background: #edfaef; color: #00450c; }
+.voozin .voozin-status-bounced, .voozin .voozin-status-failed, .voozin .voozin-status-complained { background: #fcf0f1; color: #8a2424; }
+.voozin .voozin-status-delayed { background: #fcf9e8; color: #614200; }

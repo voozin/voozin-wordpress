@@ -1,0 +1,35 @@
+name: Release
+
+# Runs when a vX.Y.Z tag reaches the GitHub mirror: deploys to the wordpress.org plugin SVN and
+# attaches the zip to a GitHub release. The tag must match "Stable tag" in readme.txt and the
+# Version header in voozin.php.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check versions match the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "^ \* Version:           $version$" voozin.php
+          grep -q "^Stable tag: $version$" readme.txt
+          grep -q "define( 'VOOZIN_VERSION', '$version' );" voozin.php
+      - name: Build zip
+        run: sh bin/build-zip.sh
+      - name: Deploy to wordpress.org
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: voozin
+      - name: GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/voozin-wordpress.zip
