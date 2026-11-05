@@ -27,7 +27,7 @@ foreach ( $voozin_ids as $voozin_id ) {
 	wp_delete_post( (int) $voozin_id, true );
 }
 
-$wpdb->query( 'DROP TABLE IF EXISTS ' . Voozin_Log::table() ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.NotPrepared
+$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', Voozin_Log::table() ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_voozin\\_%' OR option_name LIKE '\\_transient\\_timeout\\_voozin\\_%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 
 delete_option( Voozin_Settings::OPTION );

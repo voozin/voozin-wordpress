@@ -1,7 +1,7 @@
-=== Voozin – Transactional Email, Delivery Log and Inbound Email ===
+=== Voozin ===
 Contributors: voozin
 Tags: email, smtp, wp mail, transactional email, inbound email
-Requires at least: 6.0
+Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 0.1.0

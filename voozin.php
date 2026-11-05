@@ -4,7 +4,7 @@
  * Plugin URI:        https://voozin.com/integrations/wordpress
  * Description:       Send all WordPress email through the Voozin API with a delivery log, and receive and answer inbound email in wp-admin.
  * Version:           0.1.0
- * Requires at least: 6.0
+ * Requires at least: 6.2
  * Requires PHP:      7.4
  * Author:            Voozin
  * Author URI:        https://voozin.com
@@ -44,12 +44,5 @@ add_action(
 		if ( is_admin() ) {
 			Voozin_Admin::init();
 		}
-	}
-);
-
-add_action(
-	'init',
-	static function () {
-		load_plugin_textdomain( 'voozin', false, dirname( plugin_basename( VOOZIN_FILE ) ) . '/languages' );
 	}
 );

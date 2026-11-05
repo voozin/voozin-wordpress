@@ -55,6 +55,7 @@ class Voozin_Mailer {
 			Voozin_Log::add( $chunk, $email['subject'], 'sent', isset( $response['id'] ) ? (string) $response['id'] : '' );
 		}
 
+		// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core wp_mail hook.
 		do_action(
 			'wp_mail_succeeded',
 			array(
@@ -65,6 +66,7 @@ class Voozin_Mailer {
 				'attachments' => $atts['attachments'],
 			)
 		);
+		// phpcs:enable
 		return true;
 	}
 
@@ -85,7 +87,7 @@ class Voozin_Mailer {
 		if ( $fallback ) {
 			return null;
 		}
-		do_action( 'wp_mail_failed', new WP_Error( 'wp_mail_failed', $error->get_error_message(), $atts ) );
+		do_action( 'wp_mail_failed', new WP_Error( 'wp_mail_failed', $error->get_error_message(), $atts ) ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core wp_mail hook.
 		return false;
 	}
 
@@ -97,7 +99,7 @@ class Voozin_Mailer {
 	 */
 	public static function build( $atts ) {
 		$headers      = self::parse_headers( isset( $atts['headers'] ) ? $atts['headers'] : array() );
-		$content_type = apply_filters( 'wp_mail_content_type', $headers['content_type'] );
+		$content_type = apply_filters( 'wp_mail_content_type', $headers['content_type'] ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core wp_mail hook.
 
 		$to = self::addresses( $atts['to'] );
 		if ( empty( $to ) ) {
@@ -165,8 +167,8 @@ class Voozin_Mailer {
 
 		$email = $from_email ? $from_email : $default_email;
 		$name  = $from_name ? $from_name : $default_name;
-		$email = (string) apply_filters( 'wp_mail_from', $email );
-		$name  = (string) apply_filters( 'wp_mail_from_name', $name );
+		$email = (string) apply_filters( 'wp_mail_from', $email ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core wp_mail hook.
+		$name  = (string) apply_filters( 'wp_mail_from_name', $name ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core wp_mail hook.
 
 		if ( Voozin_Settings::get( 'force_from' ) || ( $email !== $default_email && ! Voozin_API::is_verified_sender( $email ) ) ) {
 			$email = $default_email;
