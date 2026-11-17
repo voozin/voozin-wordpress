@@ -39,7 +39,8 @@ class Voozin_Webhook {
 	}
 
 	/**
-	 * Registers the route. It is public; every request is authenticated by its signature.
+	 * Registers the route. Voozin's servers call it without a WordPress user, so instead of a
+	 * capability check every request must carry a valid signature made with the webhook secret.
 	 */
 	public static function register_route() {
 		register_rest_route(
@@ -48,9 +49,26 @@ class Voozin_Webhook {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'handle' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( __CLASS__, 'authorize' ),
 			)
 		);
+	}
+
+	/**
+	 * Permission callback: allows only requests signed with this site's webhook secret.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return true|WP_Error
+	 */
+	public static function authorize( WP_REST_Request $request ) {
+		$ok = self::verify(
+			Voozin_Settings::webhook_secret(),
+			(string) $request->get_header( 'webhook-id' ),
+			(string) $request->get_header( 'webhook-timestamp' ),
+			(string) $request->get_header( 'webhook-signature' ),
+			$request->get_body()
+		);
+		return $ok ? true : new WP_Error( 'voozin_invalid_signature', __( 'Invalid webhook signature.', 'voozin' ), array( 'status' => 401 ) );
 	}
 
 	/**
@@ -84,7 +102,7 @@ class Voozin_Webhook {
 	}
 
 	/**
-	 * Handles a delivery.
+	 * Handles a delivery whose signature authorize() has checked.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response
@@ -92,16 +110,6 @@ class Voozin_Webhook {
 	public static function handle( WP_REST_Request $request ) {
 		$body = $request->get_body();
 		$id   = (string) $request->get_header( 'webhook-id' );
-		$ok   = self::verify(
-			Voozin_Settings::webhook_secret(),
-			$id,
-			(string) $request->get_header( 'webhook-timestamp' ),
-			(string) $request->get_header( 'webhook-signature' ),
-			$body
-		);
-		if ( ! $ok ) {
-			return new WP_REST_Response( array( 'error' => 'invalid signature' ), 400 );
-		}
 
 		// Retries and replays keep the same webhook-id.
 		$seen = 'voozin_wh_' . md5( $id );

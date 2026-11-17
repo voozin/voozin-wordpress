@@ -279,12 +279,14 @@ class Voozin_Admin {
 	public static function handle_save_settings() {
 		self::guard( 'save_settings' );
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified in guard().
-		$values = array(
+		$track_opens  = isset( $_POST['track_opens'] ) ? sanitize_key( wp_unslash( $_POST['track_opens'] ) ) : '';
+		$track_clicks = isset( $_POST['track_clicks'] ) ? sanitize_key( wp_unslash( $_POST['track_clicks'] ) ) : '';
+		$values       = array(
 			'from_name'    => sanitize_text_field( wp_unslash( isset( $_POST['from_name'] ) ? $_POST['from_name'] : '' ) ),
 			'force_from'   => ! empty( $_POST['force_from'] ),
 			'fallback'     => ! empty( $_POST['fallback'] ),
-			'track_opens'  => in_array( isset( $_POST['track_opens'] ) ? $_POST['track_opens'] : '', array( '', '0', '1' ), true ) ? sanitize_text_field( wp_unslash( $_POST['track_opens'] ) ) : '',
-			'track_clicks' => in_array( isset( $_POST['track_clicks'] ) ? $_POST['track_clicks'] : '', array( '', '0', '1' ), true ) ? sanitize_text_field( wp_unslash( $_POST['track_clicks'] ) ) : '',
+			'track_opens'  => in_array( $track_opens, array( '0', '1' ), true ) ? $track_opens : '',
+			'track_clicks' => in_array( $track_clicks, array( '0', '1' ), true ) ? $track_clicks : '',
 			'log_days'     => min( 365, max( 1, isset( $_POST['log_days'] ) ? absint( $_POST['log_days'] ) : 30 ) ),
 		);
 		if ( isset( $_POST['from_local'], $_POST['from_domain'] ) ) {
