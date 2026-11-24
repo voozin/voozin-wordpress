@@ -13,7 +13,11 @@
 .voozin .voozin-message.voozin-out { border-left: 4px solid #2271b1; }
 .voozin .voozin-meta { display: flex; justify-content: space-between; margin-bottom: 8px; color: #646970; }
 .voozin .voozin-meta strong { color: #1d2327; }
-.voozin .voozin-body-html { width: 100%; height: 260px; border: 0; resize: vertical; background: #fff; }
+.voozin .voozin-body-html { max-height: 520px; overflow: auto; line-height: 1.5; overflow-wrap: anywhere; }
+.voozin .voozin-body-html img { max-width: 100%; height: auto; }
+.voozin .voozin-body-html .voozin-image-hidden { display: none; }
+.voozin .voozin-body-html table { max-width: 100%; border-collapse: collapse; }
+.voozin .voozin-notice-images { background: #f6f7f7; border-left: 4px solid #8c8f94; padding: 6px 10px; margin: 8px 0; }
 .voozin .voozin-body-text { white-space: normal; line-height: 1.6; }
 .voozin .voozin-attachments { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #f0f0f1; }
 .voozin .voozin-attachments span { color: #646970; }

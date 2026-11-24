@@ -31,15 +31,28 @@ class Voozin_Admin {
 	}
 
 	/**
+	 * Opening a conversation from the inbox marks it read, before the menu badge is counted. The link
+	 * carries a nonce for that conversation, checked together with the capability.
+	 */
+	private static function maybe_mark_read() {
+		if ( ! isset( $_GET['page'], $_GET['thread'], $_GET['voozin_read'] ) || ! current_user_can( self::CAP ) ) {
+			return;
+		}
+		$thread = absint( $_GET['thread'] );
+		$nonce  = sanitize_key( wp_unslash( $_GET['voozin_read'] ) );
+		if ( 'voozin-inbox' !== sanitize_key( wp_unslash( $_GET['page'] ) ) || ! wp_verify_nonce( $nonce, 'voozin_read_' . $thread ) ) {
+			return;
+		}
+		if ( Voozin_Inbox::POST_TYPE === get_post_type( $thread ) ) {
+			Voozin_Inbox::mark_read( $thread );
+		}
+	}
+
+	/**
 	 * Menu entries.
 	 */
 	public static function menu() {
-		// Opening a conversation marks it read before the badge is counted.
-		$page   = isset( $_GET['page'] ) ? sanitize_key( $_GET['page'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$thread = isset( $_GET['thread'] ) ? absint( $_GET['thread'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( 'voozin-inbox' === $page && $thread && current_user_can( self::CAP ) && Voozin_Inbox::POST_TYPE === get_post_type( $thread ) ) {
-			Voozin_Inbox::mark_read( $thread );
-		}
+		self::maybe_mark_read();
 		$unread = Voozin_Inbox::unread_count();
 		$badge  = $unread ? ' <span class="awaiting-mod">' . (int) $unread . '</span>' : '';
 		add_menu_page( 'Voozin', 'Voozin' . $badge, self::CAP, 'voozin', array( __CLASS__, 'page_settings' ), 'dashicons-email-alt', 81 );
@@ -472,6 +485,7 @@ class Voozin_Admin {
 	 * Inbox page: connection, conversation list or one conversation.
 	 */
 	public static function page_inbox() {
+		// Read-only: which conversation to show. Nothing is changed here (see maybe_mark_read()).
 		$thread = isset( $_GET['thread'] ) ? absint( $_GET['thread'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		echo '<div class="wrap voozin">';
 		if ( $thread ) {
@@ -556,12 +570,16 @@ class Voozin_Admin {
 			$unread = (int) get_post_meta( $post->ID, '_voozin_unread', true );
 			$count  = count( Voozin_Inbox::messages( $post->ID ) );
 			$last   = (int) get_post_meta( $post->ID, '_voozin_last_at', true );
-			$url    = add_query_arg(
-				array(
-					'page'   => 'voozin-inbox',
-					'thread' => $post->ID,
+			$url    = wp_nonce_url(
+				add_query_arg(
+					array(
+						'page'   => 'voozin-inbox',
+						'thread' => $post->ID,
+					),
+					admin_url( 'admin.php' )
 				),
-				admin_url( 'admin.php' )
+				'voozin_read_' . $post->ID,
+				'voozin_read'
 			);
 			printf(
 				'<tr class="%s"><td class="voozin-who">%s</td><td><a href="%s">%s</a>%s</td><td class="voozin-when">%s</td></tr>',
@@ -578,6 +596,101 @@ class Voozin_Admin {
 	}
 
 	/**
+	 * Received HTML, sanitized for display in wp-admin: no scripts, styles, forms or embeds. Links
+	 * open in a new tab without a referrer. Remote images load only after the user asks for them,
+	 * and only over HTTPS; nothing else in the message can load a remote resource.
+	 *
+	 * @param string $html   Received HTML.
+	 * @param bool   $images Whether the user chose to show remote images.
+	 * @return array{0: string, 1: int} Sanitized HTML and the number of images held back.
+	 */
+	private static function email_html( $html, $images ) {
+		$html  = preg_replace( '#<(head|style|script|title|template|noscript)\b[^>]*>.*?</\1\s*>#is', '', $html );
+		$cell  = array(
+			'align'   => true,
+			'valign'  => true,
+			'colspan' => true,
+			'rowspan' => true,
+			'width'   => true,
+		);
+		$block = array( 'align' => true );
+		$allowed = array(
+			'a'          => array(
+				'href'  => true,
+				'title' => true,
+			),
+			'img'        => array(
+				'src'    => true,
+				'alt'    => true,
+				'width'  => true,
+				'height' => true,
+			),
+			'table'      => array(
+				'width'       => true,
+				'align'       => true,
+				'cellpadding' => true,
+				'cellspacing' => true,
+				'border'      => true,
+			),
+			'thead'      => array(),
+			'tbody'      => array(),
+			'tfoot'      => array(),
+			'tr'         => array(),
+			'td'         => $cell,
+			'th'         => $cell,
+			'p'          => $block,
+			'div'        => $block,
+			'center'     => array(),
+			'span'       => array(),
+			'br'         => array(),
+			'hr'         => array(),
+			'b'          => array(),
+			'strong'     => array(),
+			'i'          => array(),
+			'em'         => array(),
+			'u'          => array(),
+			's'          => array(),
+			'small'      => array(),
+			'sub'        => array(),
+			'sup'        => array(),
+			'blockquote' => array(),
+			'pre'        => array(),
+			'code'       => array(),
+			'ul'         => array(),
+			'ol'         => array(),
+			'li'         => array(),
+			'h1'         => $block,
+			'h2'         => $block,
+			'h3'         => $block,
+			'h4'         => $block,
+			'h5'         => $block,
+			'h6'         => $block,
+		);
+		$tags    = new WP_HTML_Tag_Processor( wp_kses( $html, $allowed, array( 'http', 'https', 'mailto' ) ) );
+		$blocked = 0;
+		while ( $tags->next_tag() ) {
+			if ( 'A' === $tags->get_tag() ) {
+				$tags->set_attribute( 'target', '_blank' );
+				$tags->set_attribute( 'rel', 'noopener noreferrer nofollow' );
+			} elseif ( 'IMG' === $tags->get_tag() ) {
+				$src = (string) $tags->get_attribute( 'src' );
+				if ( '' === $src ) {
+					continue;
+				}
+				if ( $images && 0 === strpos( $src, 'https://' ) ) {
+					$tags->set_attribute( 'referrerpolicy', 'no-referrer' );
+					$tags->set_attribute( 'loading', 'lazy' );
+				} else {
+					++$blocked;
+					$tags->remove_attribute( 'src' );
+					$tags->add_class( 'voozin-image-hidden' );
+				}
+			}
+		}
+		return array( $tags->get_updated_html(), $blocked );
+	}
+
+	/**
 	 * One conversation with a reply form.
 	 *
 	 * @param int $root Root post id.
@@ -588,10 +701,22 @@ class Voozin_Admin {
 			echo '<p>' . esc_html__( 'Conversation not found.', 'voozin' ) . '</p>';
 			return;
 		}
-		Voozin_Inbox::mark_read( $root );
 		echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=voozin-inbox' ) ) . '">← ' . esc_html__( 'Inbox', 'voozin' ) . '</a></p>';
 		echo '<h1>' . esc_html( $post->post_title ) . '</h1>';
 		self::notice();
+
+		$images_url = wp_nonce_url(
+			add_query_arg(
+				array(
+					'page'   => 'voozin-inbox',
+					'thread' => $root,
+				),
+				admin_url( 'admin.php' )
+			),
+			'voozin_images_' . $root,
+			'voozin_images'
+		);
+		$show_images = isset( $_GET['voozin_images'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['voozin_images'] ) ), 'voozin_images_' . $root );
 
 		foreach ( Voozin_Inbox::messages( $root ) as $message ) {
 			$direction = get_post_meta( $message->ID, '_voozin_direction', true );
@@ -612,8 +737,11 @@ class Voozin_Admin {
 
 			$html = (string) get_post_meta( $message->ID, '_voozin_html', true );
 			if ( 'in' === $direction && '' !== $html ) {
-				// Sandboxed without scripts, forms or same-origin access.
-				echo '<iframe class="voozin-body-html" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" srcdoc="' . esc_attr( '<base target="_blank">' . $html ) . '"></iframe>';
+				list( $body, $blocked ) = self::email_html( $html, $show_images );
+				if ( $blocked ) {
+					echo '<p class="voozin-notice-images">' . esc_html__( 'Remote images are hidden so the sender cannot track when you open this message.', 'voozin' ) . ' <a href="' . esc_url( $images_url ) . '">' . esc_html__( 'Show images', 'voozin' ) . '</a></p>';
+				}
+				echo '<div class="voozin-body-html">' . $body . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- sanitized by wp_kses() in email_html().
 			} else {
 				echo '<div class="voozin-body-text">' . nl2br( esc_html( (string) get_post_meta( $message->ID, '_voozin_text', true ) ) ) . '</div>';
 			}
